@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weight Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #e0f2fe 0%, #e8eaf6 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .icon-circle {
+            width: 60px;
+            height: 60px;
+            background: #e8eaf6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .header-right {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            color: #1a237e;
+            margin: 0;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .status-card {
+            background: linear-gradient(135deg, #3f51b5 0%, #7b1fa2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+        
+        .input-section {
+            background: #f5f5f5;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .input-group input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #3f51b5;
+        }
+        
+        .btn {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #3f51b5;
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: #303f9f;
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .btn-toggle {
+            background: #f0f0f0;
+            color: #666;
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+        
+        .btn-toggle.active {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        select {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-card {
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .stat-card.blue { background: #e3f2fd; color: #0d47a1; }
+        .stat-card.green { background: #e8f5e8; color: #1b5e20; }
+        .stat-card.purple { background: #f3e5f5; color: #4a148c; }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .entries-section {
+            background: #f5f5f5;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+        
+        .entries-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .entry-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .chart-section {
+            background: #f5f5f5;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+        
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            position: relative;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+        
+        .trend {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .trend.up { background: #ffebee; color: #c62828; }
+        .trend.down { background: #e8f5e8; color: #2e7d32; }
+        
+        @media (max-width: 600px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .input-group {
+                flex-direction: column;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <div class="icon-circle">⚖️</div>
+                <div>
+                    <h1>Weight Tracker</h1>
+                    <div class="subtitle">Track your daily progress</div>
+                </div>
+            </div>
+            <div class="header-right">
+                <select id="unitSelect">
+                    <option value="lbs">lbs</option>
+                    <option value="kg">kg</option>
+                </select>
+                <button class="btn btn-toggle" id="reminderBtn">🔔 Reminders</button>
+            </div>
+        </div>
+
+        <!-- Today's Status -->
+        <div class="status-card">
+            <h2 style="margin-bottom: 10px;">Today's Check-in</h2>
+            <div id="todayStatus">📅 Haven't weighed in today</div>
+            <div id="trendDisplay" style="margin-top: 10px;"></div>
+        </div>
+
+        <!-- Weight Input -->
+        <div class="input-section">
+            <h3 style="margin-bottom: 15px;">Record Today's Weight</h3>
+            <div class="input-group">
+                <input type="number" step="0.1" id="weightInput" placeholder="Enter weight">
+                <button class="btn btn-primary" id="addWeightBtn">Add Weight</button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid" id="statsSection" style="display: none;">
+            <div class="stat-card blue">
+                <div>Current Weight</div>
+                <div class="stat-value" id="currentWeight">-</div>
+            </div>
+            <div class="stat-card green">
+                <div>Total Change</div>
+                <div class="stat-value" id="totalChange">-</div>
+            </div>
+            <div class="stat-card purple">
+                <div>Entries</div>
+                <div class="stat-value" id="entryCount">-</div>
+            </div>
+        </div>
+
+        <!-- Simple Chart -->
+        <div class="chart-section" id="chartSection" style="display: none;">
+            <h3 style="margin-bottom: 15px;">Weight Progress</h3>
+            <div class="chart-container">
+                <canvas id="weightChart" width="100%" height="300"></canvas>
+            </div>
+        </div>
+
+        <!-- Recent Entries -->
+        <div class="entries-section" id="entriesSection" style="display: none;">
+            <h3 style="margin-bottom: 15px;">Recent Entries</h3>
+            <div class="entries-list" id="entriesList"></div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState">
+            <div class="empty-icon">⚖️</div>
+            <p style="font-size: 1.2rem;">No weight entries yet.<br>Add your first weight above!</p>
+        </div>
+    </div>
+
+    <script>
+        // App State
+        let weights = JSON.parse(localStorage.getItem('weightData') || '[]');
+        let unit = localStorage.getItem('weightUnit') || 'lbs';
+        let remindersEnabled = localStorage.getItem('remindersEnabled') === 'true';
+
+        // DOM Elements
+        const weightInput = document.getElementById('weightInput');
+        const addWeightBtn = document.getElementById('addWeightBtn');
+        const unitSelect = document.getElementById('unitSelect');
+        const reminderBtn = document.getElementById('reminderBtn');
+        const todayStatus = document.getElementById('todayStatus');
+        const trendDisplay = document.getElementById('trendDisplay');
+        const currentWeight = document.getElementById('currentWeight');
+        const totalChange = document.getElementById('totalChange');
+        const entryCount = document.getElementById('entryCount');
+        const entriesList = document.getElementById('entriesList');
+        const emptyState = document.getElementById('emptyState');
+        const statsSection = document.getElementById('statsSection');
+        const entriesSection = document.getElementById('entriesSection');
+        const chartSection = document.getElementById('chartSection');
+
+        // Initialize
+        unitSelect.value = unit;
+        updateDisplay();
+        updateReminderButton();
+
+        // Event Listeners
+        addWeightBtn.addEventListener('click', addWeight);
+        unitSelect.addEventListener('change', changeUnit);
+        reminderBtn.addEventListener('click', toggleReminders);
+        
+        weightInput.addEventListener('input', function() {
+            addWeightBtn.disabled = !this.value || isNaN(parseFloat(this.value));
+        });
+
+        weightInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !addWeightBtn.disabled) {
+                addWeight();
+            }
+        });
+
+        // Functions
+        function addWeight() {
+            const weight = parseFloat(weightInput.value);
+            if (!weight || isNaN(weight)) return;
+
+            const today = new Date();
+            const dateString = today.toLocaleDateString();
+            
+            // Remove existing entry for today
+            weights = weights.filter(w => w.date !== dateString);
+            
+            // Add new entry
+            weights.push({
+                date: dateString,
+                weight: weight,
+                timestamp: today.getTime()
+            });
+
+            // Sort by timestamp
+            weights.sort((a, b) => a.timestamp - b.timestamp);
+
+            // Save and update
+            localStorage.setItem('weightData', JSON.stringify(weights));
+            localStorage.setItem('lastWeighIn', today.toISOString());
+            
+            weightInput.value = '';
+            addWeightBtn.disabled = true;
+            updateDisplay();
+        }
+
+        function changeUnit() {
+            unit = unitSelect.value;
+            localStorage.setItem('weightUnit', unit);
+            updateDisplay();
+        }
+
+        function toggleReminders() {
+            if (!remindersEnabled && 'Notification' in window) {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        remindersEnabled = true;
+                        localStorage.setItem('remindersEnabled', 'true');
+                        updateReminderButton();
+                        startReminders();
+                    }
+                });
+            } else {
+                remindersEnabled = !remindersEnabled;
+                localStorage.setItem('remindersEnabled', remindersEnabled.toString());
+                updateReminderButton();
+                if (remindersEnabled) startReminders();
+            }
+        }
+
+        function updateReminderButton() {
+            if (remindersEnabled) {
+                reminderBtn.textContent = '🔔 Reminders';
+                reminderBtn.classList.add('active');
+            } else {
+                reminderBtn.textContent = '🔕 Reminders';
+                reminderBtn.classList.remove('active');
+            }
+        }
+
+        function hasWeighedInToday() {
+            const today = new Date().toDateString();
+            const lastWeighIn = localStorage.getItem('lastWeighIn');
+            return lastWeighIn && new Date(lastWeighIn).toDateString() === today;
+        }
+
+        function getWeightTrend() {
+            if (weights.length < 2) return null;
+            const recent = weights.slice(-7);
+            if (recent.length < 2) return null;
+            return recent[recent.length - 1].weight - recent[0].weight;
+        }
+
+        function updateDisplay() {
+            // Update placeholder
+            weightInput.placeholder = `Enter weight in ${unit}`;
+
+            if (weights.length === 0) {
+                emptyState.style.display = 'block';
+                statsSection.style.display = 'none';
+                entriesSection.style.display = 'none';
+                chartSection.style.display = 'none';
+                todayStatus.textContent = "📅 Haven't weighed in today";
+                trendDisplay.textContent = '';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            statsSection.style.display = 'grid';
+            entriesSection.style.display = 'block';
+            if (weights.length > 1) chartSection.style.display = 'block';
+
+            // Update today's status
+            if (hasWeighedInToday()) {
+                const todayWeight = weights.find(w => w.date === new Date().toLocaleDateString());
+                todayStatus.textContent = `✓ Weighed in today: ${todayWeight.weight} ${unit}`;
+            } else {
+                todayStatus.textContent = "📅 Haven't weighed in today";
+            }
+
+            // Update trend
+            const trend = getWeightTrend();
+            if (trend !== null) {
+                const trendText = trend > 0 ? `↗️ +${trend.toFixed(1)} ${unit}` : `↘️ ${trend.toFixed(1)} ${unit}`;
+                const trendClass = trend > 0 ? 'up' : 'down';
+                trendDisplay.innerHTML = `<span class="trend ${trendClass}">${trendText}</span>`;
+            } else {
+                trendDisplay.textContent = '';
+            }
+
+            // Update stats
+            const latest = weights[weights.length - 1];
+            const first = weights[0];
+            
+            currentWeight.textContent = `${latest.weight} ${unit}`;
+            totalChange.textContent = `${(latest.weight - first.weight).toFixed(1)} ${unit}`;
+            entryCount.textContent = weights.length;
+
+            // Update recent entries
+            entriesList.innerHTML = '';
+            weights.slice(-5).reverse().forEach(entry => {
+                const div = document.createElement('div');
+                div.className = 'entry-item';
+                div.innerHTML = `
+                    <span>${entry.date}</span>
+                    <strong>${entry.weight} ${unit}</strong>
+                `;
+                entriesList.appendChild(div);
+            });
+
+            // Simple chart
+            drawChart();
+        }
+
+        function drawChart() {
+            if (weights.length < 2) return;
+            
+            const canvas = document.getElementById('weightChart');
+            const ctx = canvas.getContext('2d');
+            const rect = canvas.getBoundingClientRect();
+            
+            // Set canvas size
+            canvas.width = rect.width;
+            canvas.height = 300;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Chart dimensions
+            const padding = 40;
+            const chartWidth = canvas.width - 2 * padding;
+            const chartHeight = canvas.height - 2 * padding;
+            
+            // Get weight range
+            const weightValues = weights.map(w => w.weight);
+            const minWeight = Math.min(...weightValues) - 1;
+            const maxWeight = Math.max(...weightValues) + 1;
+            const weightRange = maxWeight - minWeight;
+            
+            // Draw grid lines
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            
+            // Horizontal grid lines
+            for (let i = 0; i <= 5; i++) {
+                const y = padding + (i * chartHeight / 5);
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(padding + chartWidth, y);
+                ctx.stroke();
+            }
+            
+            // Draw chart line
+            ctx.strokeStyle = '#3f51b5';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            weights.forEach((weight, index) => {
+                const x = padding + (index * chartWidth / (weights.length - 1));
+                const y = padding + chartHeight - ((weight.weight - minWeight) / weightRange * chartHeight);
+                
+                if (index === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            
+            ctx.stroke();
+            
+            // Draw points
+            ctx.fillStyle = '#3f51b5';
+            weights.forEach((weight, index) => {
+                const x = padding + (index * chartWidth / (weights.length - 1));
+                const y = padding + chartHeight - ((weight.weight - minWeight) / weightRange * chartHeight);
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+            
+            // Draw labels
+            ctx.fillStyle = '#666';
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'center';
+            
+            // Y-axis labels
+            for (let i = 0; i <= 5; i++) {
+                const y = padding + (i * chartHeight / 5) + 4;
+                const value = (maxWeight - (i * weightRange / 5)).toFixed(1);
+                ctx.textAlign = 'right';
+                ctx.fillText(value, padding - 10, y);
+            }
+        }
+
+        function startReminders() {
+            if (!remindersEnabled) return;
+            
+            setInterval(() => {
+                const now = new Date();
+                if (now.getHours() >= 8 && !hasWeighedInToday()) {
+                    if (Notification.permission === 'granted') {
+                        new Notification('Weight Tracker Reminder', {
+                            body: "Don't forget to weigh yourself today!",
+                            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">⚖️</text></svg>'
+                        });
+                    }
+                }
+            }, 3600000); // Check every hour
+        }
+
+        // Start reminders if enabled
+        if (remindersEnabled) {
+            startReminders();
+        }
+
+        // Initial button state
+        addWeightBtn.disabled = true;
+    </script>
+</body>
+</html>
