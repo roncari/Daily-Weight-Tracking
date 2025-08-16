@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weight Tracker</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/recharts@2.8.0/umd/Recharts.js"></script>
+    <script src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = Recharts;
+        const { Scale, Calendar, TrendingDown, TrendingUp, Bell, BellOff } = LucideReact;
+
+        const WeightTracker = () => {
+          const [weight, setWeight] = useState('');
+          const [weights, setWeights] = useState([]);
+          const [remindersEnabled, setRemindersEnabled] = useState(false);
+          const [lastWeighIn, setLastWeighIn] = useState(null);
+          const [unit, setUnit] = useState('lbs');
+
+          // Load data from localStorage on component mount
+          useEffect(() => {
+            const savedWeights = JSON.parse(localStorage.getItem('weightData') || '[]');
+            const savedUnit = localStorage.getItem('weightUnit') || 'lbs';
+            const savedReminders = localStorage.getItem('remindersEnabled') === 'true';
+            const savedLastWeighIn = localStorage.getItem('lastWeighIn');
+            
+            setWeights(savedWeights);
+            setUnit(savedUnit);
+            setRemindersEnabled(savedReminders);
+            setLastWeighIn(savedLastWeighIn ? new Date(savedLastWeighIn) : null);
+          }, []);
+
+          // Save data to localStorage whenever state changes
+          useEffect(() => {
+            localStorage.setItem('weightData', JSON.stringify(weights));
+          }, [weights]);
+
+          useEffect(() => {
+            localStorage.setItem('weightUnit', unit);
+          }, [unit]);
+
+          useEffect(() => {
+            localStorage.setItem('remindersEnabled', remindersEnabled.toString());
+          }, [remindersEnabled]);
+
+          useEffect(() => {
+            if (lastWeighIn) {
+              localStorage.setItem('lastWeighIn', lastWeighIn.toISOString());
+            }
+          }, [lastWeighIn]);
+
+          // Check for daily reminder
+          useEffect(() => {
+            if (remindersEnabled) {
+              const checkReminder = () => {
+                const now = new Date();
+                const today = now.toDateString();
+                const lastWeighInDate = lastWeighIn ? lastWeighIn.toDateString() : null;
+                
+                if (lastWeighInDate !== today && now.getHours() >= 8) {
+                  // Show reminder notification
+                  if (Notification.permission === 'granted') {
+                    new Notification('Weight Tracker Reminder', {
+                      body: 'Don\'t forget to weigh yourself today!',
+                      icon: '⚖️'
+                    });
+                  }
+                }
+              };
+
+              const interval = setInterval(checkReminder, 60000 * 60); // Check every hour
+              return () => clearInterval(interval);
+            }
+          }, [remindersEnabled, lastWeighIn]);
+
+          const addWeight = () => {
+            if (weight && !isNaN(parseFloat(weight))) {
+              const today = new Date();
+              const newEntry = {
+                date: today.toLocaleDateString(),
+                weight: parseFloat(weight),
+                timestamp: today.getTime()
+              };
+              
+              // Remove any existing entry for today, then add new one
+              const filteredWeights = weights.filter(w => w.date !== today.toLocaleDateString());
+              const updatedWeights = [...filteredWeights, newEntry].sort((a, b) => a.timestamp - b.timestamp);
+              
+              setWeights(updatedWeights);
+              setLastWeighIn(today);
+              setWeight('');
+            }
+          };
+
+          const toggleReminders = async () => {
+            if (!remindersEnabled && 'Notification' in window) {
+              const permission = await Notification.requestPermission();
+              if (permission === 'granted') {
+                setRemindersEnabled(true);
+              }
+            } else {
+              setRemindersEnabled(!remindersEnabled);
+            }
+          };
+
+          const getWeightTrend = () => {
+            if (weights.length < 2) return null;
+            const recent = weights.slice(-7); // Last 7 entries
+            if (recent.length < 2) return null;
+            
+            const firstWeight = recent[0].weight;
+            const lastWeight = recent[recent.length - 1].weight;
+            return lastWeight - firstWeight;
+          };
+
+          const getTrendIcon = () => {
+            const trend = getWeightTrend();
+            if (!trend) return null;
+            
+            if (trend > 0) {
+              return React.createElement(TrendingUp, { className: "w-5 h-5 text-red-500" });
+            } else if (trend < 0) {
+              return React.createElement(TrendingDown, { className: "w-5 h-5 text-green-500" });
+            }
+            return null;
+          };
+
+          const formatDate = (dateString) => {
+            return new Date(dateString).toLocaleDateString('en-US', { 
+              month: 'short', 
+              day: 'numeric' 
+            });
+          };
+
+          const hasWeighedInToday = () => {
+            const today = new Date().toDateString();
+            return lastWeighIn && lastWeighIn.toDateString() === today;
+          };
+
+          return (
+            <div className="max-w-4xl mx-auto p-6 bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+              <div className="bg-white rounded-2xl shadow-xl p-8">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-indigo-100 rounded-full">
+                      {React.createElement(Scale, { className: "w-8 h-8 text-indigo-600" })}
+                    </div>
+                    <div>
+                      <h1 className="text-3xl font-bold text-gray-800">Weight Tracker</h1>
+                      <p className="text-gray-600">Track your daily progress</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <select 
+                      value={unit} 
+                      onChange={(e) => setUnit(e.target.value)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="lbs">lbs</option>
+                      <option value="kg">kg</option>
+                    </select>
+                    
+                    <button
+                      onClick={toggleReminders}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                        remindersEnabled 
+                          ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {remindersEnabled ? React.createElement(Bell, { className: "w-4 h-4" }) : React.createElement(BellOff, { className: "w-4 h-4" })}
+                      Reminders
+                    </button>
+                  </div>
+                </div>
+
+                {/* Today's Status */}
+                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-6 text-white mb-8">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xl font-semibold mb-2">Today's Check-in</h2>
+                      {hasWeighedInToday() ? (
+                        <div className="flex items-center gap-2">
+                          {React.createElement(Calendar, { className: "w-5 h-5" })}
+                          <span>✓ Weighed in today: {weights.find(w => w.date === new Date().toLocaleDateString())?.weight} {unit}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          {React.createElement(Calendar, { className: "w-5 h-5" })}
+                          <span>Haven't weighed in today</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {getTrendIcon()}
+                      {getWeightTrend() && (
+                        <span className="text-sm">
+                          {getWeightTrend() > 0 ? '+' : ''}{getWeightTrend().toFixed(1)} {unit}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Weight Input */}
+                <div className="bg-gray-50 rounded-xl p-6 mb-8">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Record Today's Weight</h3>
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={weight}
+                        onChange={(e) => setWeight(e.target.value)}
+                        placeholder={`Enter weight in ${unit}`}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-lg"
+                      />
+                    </div>
+                    <button
+                      onClick={addWeight}
+                      disabled={!weight || isNaN(parseFloat(weight))}
+                      className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+                    >
+                      Add Weight
+                    </button>
+                  </div>
+                </div>
+
+                {/* Stats */}
+                {weights.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <div className="bg-blue-50 rounded-xl p-4">
+                      <h4 className="font-medium text-blue-800">Current Weight</h4>
+                      <p className="text-2xl font-bold text-blue-900">
+                        {weights[weights.length - 1]?.weight} {unit}
+                      </p>
+                    </div>
+                    
+                    {weights.length > 1 && (
+                      <>
+                        <div className="bg-green-50 rounded-xl p-4">
+                          <h4 className="font-medium text-green-800">Total Change</h4>
+                          <p className="text-2xl font-bold text-green-900">
+                            {((weights[weights.length - 1]?.weight || 0) - (weights[0]?.weight || 0)).toFixed(1)} {unit}
+                          </p>
+                        </div>
+                        
+                        <div className="bg-purple-50 rounded-xl p-4">
+                          <h4 className="font-medium text-purple-800">Entries</h4>
+                          <p className="text-2xl font-bold text-purple-900">{weights.length}</p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Chart */}
+                {weights.length > 1 && (
+                  <div className="bg-gray-50 rounded-xl p-6 mb-8">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Weight Progress</h3>
+                    <div className="h-64">
+                      {React.createElement(ResponsiveContainer, { width: "100%", height: "100%" },
+                        React.createElement(LineChart, { data: weights },
+                          React.createElement(CartesianGrid, { strokeDasharray: "3 3" }),
+                          React.createElement(XAxis, { 
+                            dataKey: "date",
+                            tickFormatter: formatDate
+                          }),
+                          React.createElement(YAxis, {
+                            domain: ['dataMin - 2', 'dataMax + 2'],
+                            label: { value: unit, angle: -90, position: 'insideLeft' }
+                          }),
+                          React.createElement(Tooltip, {
+                            labelFormatter: (value) => `Date: ${value}`,
+                            formatter: (value) => [`${value} ${unit}`, 'Weight']
+                          }),
+                          React.createElement(Line, {
+                            type: "monotone",
+                            dataKey: "weight",
+                            stroke: "#4f46e5",
+                            strokeWidth: 3,
+                            dot: { fill: '#4f46e5', strokeWidth: 2, r: 4 }
+                          })
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recent Entries */}
+                {weights.length > 0 && (
+                  <div className="bg-gray-50 rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Entries</h3>
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {weights.slice(-5).reverse().map((entry, index) => (
+                        <div key={index} className="flex justify-between items-center py-2 px-3 bg-white rounded-lg">
+                          <span className="text-gray-600">{entry.date}</span>
+                          <span className="font-medium text-gray-800">{entry.weight} {unit}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {weights.length === 0 && (
+                  <div className="text-center py-12 text-gray-500">
+                    {React.createElement(Scale, { className: "w-16 h-16 mx-auto mb-4 text-gray-300" })}
+                    <p className="text-lg">No weight entries yet. Add your first weight above!</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        };
+
+        ReactDOM.render(React.createElement(WeightTracker), document.getElementById('root'));
+    </script>
+</body>
+</html>
